@@ -13,7 +13,7 @@ resource "aws_vpc" "k8s" {
   enable_dns_support               = "true"
   assign_generated_ipv6_cidr_block = "false"
   
-  # The provisioner below grabs the public IP of build machine and inserts it into rules in the routing table
+   # The provisioner below grabs the public IP of build machine to insert into routing table(s) in secuirty_groups.tf
   provisioner "local-exec" {
     command     = "printf $(curl ifconfig.co) > build_machine_ip.txt"
   }  
@@ -61,6 +61,7 @@ resource "aws_route_table_association" "public" {
  subnet_id      = "${aws_subnet.public-01.id}"
  route_table_id = "${aws_route_table.public.id}"
 }
+
 
 /* don't need nat until load balancer (and it costs $), until then just connect directly via the EC2's public IP address 
 resource "aws_eip" "nat" {
@@ -129,7 +130,7 @@ resource "aws_key_pair" "deployer" {
 }
 
 
-# Get the latest Ubuntu 16.04 (LTR) for our EC2 instances
+# Gets the latest Ubuntu 16.04 (LTR) for our EC2 instances
 data "aws_ami" "ubuntu" {
   most_recent  = true
     filter {
