@@ -13,7 +13,7 @@ resource "aws_vpc" "k8s" {
   enable_dns_support               = "true"
   assign_generated_ipv6_cidr_block = "false"
   
-   # The provisioner below grabs the public IP of build machine to insert into routing table(s) in secuirty_groups.tf
+  # The provisioner below grabs the public IP of build machine to insert into routing table(s) in secuirty_groups.tf
   provisioner "local-exec" {
     command     = "printf $(curl ifconfig.co) > build_machine_ip.txt"
   }  
