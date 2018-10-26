@@ -8,7 +8,7 @@ avail_zone = "us-east-1a"
 vpc_cidr = "10.0.10.0/24"
 
 # CIDR block of the new subnet inside the new VPC
-subnet_cidr = "10.0.10.0/28"
+subnet_cidr = "10.0.10.0/26"
 
 # AWS Name of new subnet inside new VPC. 
 subnet_name = "Public-01"

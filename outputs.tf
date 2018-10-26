@@ -29,3 +29,8 @@ output "master_private_IP" {
 output "worker_private_IP" {
   value       = "${aws_instance.kub_worker.*.private_ip}"
 }
+
+/*
+output "load balancer DNS name" {
+  value      = "${aws_lb.web.dns_name}"
+}*/

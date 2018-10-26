@@ -15,6 +15,15 @@ resource "aws_security_group" "k8s" {
      
     }
 
+# Ports that kube nodes listen on 
+  ingress {
+    from_port   = 30000
+    to_port     = 33000
+    protocol    = "tcp"
+    cidr_blocks = ["${file("build_machine_ip.txt")}/32"]
+    description = "ports that kube nodes listen on"  
+    }
+
   ingress {
     from_port   = 80
     to_port     = 80

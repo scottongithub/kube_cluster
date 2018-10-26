@@ -5,7 +5,6 @@ provider "aws" {
   region     = "${var.region}"
 }
 
-
 resource "aws_vpc" "k8s" {
   cidr_block                       = "${var.vpc_cidr}"
   instance_tenancy                 = "default"
@@ -44,6 +43,12 @@ resource "aws_internet_gateway" "this" {
 
 resource "aws_route_table" "public" {
  vpc_id = "${aws_vpc.k8s.id}"
+ 
+ tags {
+    Name        = "${var.subnet_name}"
+    Terraform   = "true"
+  }
+	
 }
 
 
@@ -56,26 +61,12 @@ resource "aws_route" "public_internet_gateway" {
   }
 }
 
-
 resource "aws_route_table_association" "public" {
- subnet_id      = "${aws_subnet.public-01.id}"
- route_table_id = "${aws_route_table.public.id}"
+  subnet_id      = "${aws_subnet.public-01.id}"
+  route_table_id = "${aws_route_table.public.id}"
 }
 
 
-/* don't need nat until load balancer (and it costs $), until then just connect directly via the EC2's public IP address 
-resource "aws_eip" "nat" {
-  vpc        = true
-  depends_on = ["aws_internet_gateway.this"]
-}
-
-
-resource "aws_nat_gateway" "this" {
-  allocation_id = "${aws_eip.nat.id}"
-  subnet_id     =  "${aws_subnet.public-01.id}"
-  depends_on    = ["aws_internet_gateway.this"]
-}	
-*/
 
 resource "aws_instance" "kub_master" {
   count	= 1
@@ -90,6 +81,7 @@ resource "aws_instance" "kub_master" {
   key_name                    = "k8s"
   ami                         = "${data.aws_ami.ubuntu.id}" 
   instance_type               = "${var.instance_size}"
+# iam_instance_profile        = "${aws_iam_instance_profile.kub_master.name}"
   subnet_id                   = "${aws_subnet.public-01.id}"
   vpc_security_group_ids      = ["${aws_security_group.k8s.id}"]
   associate_public_ip_address = true
@@ -114,6 +106,7 @@ resource "aws_instance" "kub_worker" {
   ami                         = "${data.aws_ami.ubuntu.id}" 
   instance_type               = "${var.instance_size}"
   subnet_id                   = "${aws_subnet.public-01.id}"
+# iam_instance_profile        = "${aws_iam_instance_profile.kub_worker.name}"
   vpc_security_group_ids      = ["${aws_security_group.k8s.id}"]
   associate_public_ip_address = true
   tags {
@@ -143,3 +136,50 @@ data "aws_ami" "ubuntu" {
     }
     owners     = ["099720109477"] # Canonical
 }
+
+
+
+/*
+Load balancer that will take requests at port 80 and translate them into whatever port the service has been exposed on on the kube nodes using the --NodePort option 
+*/
+/*
+resource "aws_eip" "lb" {
+  vpc        = true
+}
+
+resource "aws_lb" "web" {
+  name               = "nginx"
+  load_balancer_type = "network"
+  subnet_mapping {
+    subnet_id     = "${aws_subnet.public-01.id}"
+    allocation_id = "${aws_eip.lb.id}"
+  }
+}
+
+resource "aws_lb_target_group" "web" {
+  name     = "web-balancer"
+  port     = 80
+  protocol = "TCP"
+  vpc_id   = "${aws_vpc.k8s.id}"
+#  target_type = "ip"
+}
+
+resource "aws_lb_listener" "front_end" {
+  load_balancer_arn = "${aws_lb.web.arn}"
+  port              = "80"
+  protocol          = "TCP"
+  default_action {
+    type             = "forward"
+    target_group_arn = "${aws_lb_target_group.web.arn}"
+  }
+}
+
+resource "aws_lb_target_group_attachment" "web" {
+  count            = 2
+  target_group_arn = "${aws_lb_target_group.web.arn}"
+# the following strange interpolation is the only way I could get it to work; there is an issue filed in github addressing it
+  target_id        = "${element(aws_instance.kub_worker.*.id, count.index)}"
+  port             = 32196
+}
+
+*/
